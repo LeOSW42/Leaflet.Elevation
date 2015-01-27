@@ -121,9 +121,17 @@ L.Control.Elevation = L.Control.extend({
             .attr('y2', '0')
             .attr('x1', '0')
             .attr('y1', '0');
+        this._focuslabelXbbox = focusG.append("svg:rect")
+            .attr("rx", "5")
+            .attr("ry", "5")
+            .attr("class", "mouse-focus-label-x-bbox");
         this._focuslabelX = focusG.append("svg:text")
             .style("pointer-events", "none")
             .attr("class", "mouse-focus-label-x");
+        this._focuslabelYbbox = focusG.append("svg:rect")
+            .attr("rx", "5")
+            .attr("ry", "5")
+            .attr("class", "mouse-focus-label-y-bbox");
         this._focuslabelY = focusG.append("svg:text")
             .style("pointer-events", "none")
             .attr("class", "mouse-focus-label-y");
@@ -390,9 +398,9 @@ L.Control.Elevation = L.Control.extend({
             this._map.removeLayer(this._marker);
             this._marker = null;
         }
-        if (this._mouseHeightFocus) {
-            this._mouseHeightFocus.style("visibility", "hidden");
+        if (this._mouseHeightFocusLabel) {
             this._mouseHeightFocusLabel.style("visibility", "hidden");
+            this._mouseHeightFocusLabelbbox.style("visibility", "hidden");
         }
         if (this._pointG) {
             this._pointG.style("visibility", "hidden");
@@ -427,11 +435,24 @@ L.Control.Elevation = L.Control.extend({
             numY = opts.hoverNumber.formatter(alt, opts.hoverNumber.decimalsY),
             numX = opts.hoverNumber.formatter(dist, opts.hoverNumber.decimalsX);
 
-        this._focuslabelX.attr("x", coords[0])
+        this._focuslabelX.attr("y", this._height() - 25)
+            .attr("x", coords[0] + 5)
             .text(numY + " m");
-        this._focuslabelY.attr("y", this._height() - 5)
-            .attr("x", coords[0])
+        this._focuslabelY.attr("y", this._height() - 7)
+            .attr("x", coords[0] + 5)
             .text(numX + " km");
+
+        var Xbbox = this._focuslabelX.node().getBBox();
+        var padding = 1;
+        this._focuslabelXbbox.attr("x", Xbbox.x - 2*padding)
+            .attr("y", Xbbox.y - padding)
+            .attr("width", Xbbox.width + (padding*4))
+            .attr("height", Xbbox.height + (padding*2));
+        var Ybbox = this._focuslabelY.node().getBBox();
+        this._focuslabelYbbox.attr("x", Ybbox.x - 2*padding)
+            .attr("y", Ybbox.y - padding)
+            .attr("width", Ybbox.width + (padding*4))
+            .attr("height", Ybbox.height + (padding*2));
 
         var layerpoint = this._map.latLngToLayerPoint(ll);
 
@@ -439,16 +460,10 @@ L.Control.Elevation = L.Control.extend({
         //otherwise we show a marker
         if (opts.useHeightIndicator) {
 
-            if (!this._mouseHeightFocus) {
+            if (!this._mouseHeightFocusLabel) {
 
                 var heightG = d3.select(".leaflet-overlay-pane svg")
                     .append("g");
-                this._mouseHeightFocus = heightG.append('svg:line')
-                    .attr('class', 'height-focus line')
-                    .attr('x2', '0')
-                    .attr('y2', '0')
-                    .attr('x1', '0')
-                    .attr('y1', '0');
 
                 var pointG = this._pointG = heightG.append("g");
                 pointG.append("svg:circle")
@@ -457,26 +472,30 @@ L.Control.Elevation = L.Control.extend({
                     .attr("cy", 0)
                     .attr("class", "height-focus circle-lower");
 
+                this._mouseHeightFocusLabelbbox = heightG.append("svg:rect")
+                    .attr("rx", "5")
+                    .attr("ry", "5")
+                    .attr("class", "height-focus-label-bbox");
+
                 this._mouseHeightFocusLabel = heightG.append("svg:text")
                     .attr("class", "height-focus-label")
                     .style("pointer-events", "none");
 
             }
 
-            var normalizedAlt = this._height() / this._maxElevation * alt;
-            var normalizedY = layerpoint.y - normalizedAlt;
-            this._mouseHeightFocus.attr("x1", layerpoint.x)
-                .attr("x2", layerpoint.x)
-                .attr("y1", layerpoint.y)
-                .attr("y2", normalizedY)
-                .style("visibility", "visible");
-
             this._pointG.attr("transform", "translate(" + layerpoint.x + "," + layerpoint.y + ")")
                 .style("visibility", "visible");
 
-            this._mouseHeightFocusLabel.attr("x", layerpoint.x)
-                .attr("y", normalizedY)
+            this._mouseHeightFocusLabel.attr("x", layerpoint.x + 10)
+                .attr("y", layerpoint.y + 4)
                 .text(numY + " m")
+                .style("visibility", "visible");
+
+            var Heightbbox = this._mouseHeightFocusLabel.node().getBBox();
+            this._mouseHeightFocusLabelbbox.attr("x", Heightbbox.x - 2*padding)
+                .attr("y", Heightbbox.y - padding)
+                .attr("width", Heightbbox.width + (padding*4))
+                .attr("height", Heightbbox.height + (padding*2))
                 .style("visibility", "visible");
 
         } else {
